@@ -1,9 +1,11 @@
-from flask import Flask, request, jsonify
-from flask_sqlalchemy import SQLAlchemy
+import os
+
+from flask import Flask, jsonify, request, abort
 from flask_marshmallow import Marshmallow
+from flask_sqlalchemy import SQLAlchemy
 from marshmallow import ValidationError, pre_load
 from sqlalchemy.exc import IntegrityError
-import os
+from werkzeug.exceptions import NotFound
 
 # Init app
 app = Flask(__name__)
@@ -31,7 +33,9 @@ class Manufacturer(db.Model):
     head_quarter = db.Column(db.String(20), nullable=True)
     founder = db.Column(db.String(50), nullable=True)
     established_year = db.Column(db.Integer)
-    cars = db.relationship("Car", backref="manufacturer", lazy=True)
+    cars = db.relationship(
+        "Car", cascade="all,delete", backref="manufacturer", lazy=True
+    )
 
     def __init__(self, name, head_quarter, founder, established_year):
         self.name = name
@@ -76,7 +80,7 @@ class Car(db.Model):
         self.zero_to_hundred = zero_to_hundred
 
     def __repr__(self):
-        return f"<Car {self.name}"
+        return f"<Car {self.name}>"
 
 
 # Schemas
@@ -99,6 +103,7 @@ class CarSchema(ma.SQLAlchemyAutoSchema):
             "engine_type",
             "max_horse_power",
             "zero_to_hundred",
+            "manufacturer_id",
             "manufacturer",
         )
 
@@ -114,8 +119,9 @@ cars_schema = CarSchema(many=True)
 
 
 # API routes
+# manufacturing
 @app.route("/manufacturer", methods=["GET", "POST"])
-def create_view_manufacturer():
+def create_list_manufacturer():
     if request.method == "POST":
         json_data = request.get_json()
         if not json_data:
@@ -146,19 +152,27 @@ def create_view_manufacturer():
         return jsonify(response)
 
 
-@app.route("/manufacturer/<int:id>", methods=["GET"])
-def retrieve_manufacturer(id):
+@app.route("/manufacturer/<int:id>", methods=["GET", "DELETE"])
+def retrieve_delete_manufacturer(id):
     try:
-        manufacturer = Manufacturer.query.filter_by(id=id).first()
-        assert manufacturer is not None
+        manufacturer = Manufacturer.query.get(id)
+        if manufacturer is None:
+            abort(404)
+        if request.method == "GET":
+            response = manufacturer_schema.dump(manufacturer)
+            return response
+        # request.method == "DELETE"
         response = manufacturer_schema.dump(manufacturer)
+        db.session.delete(manufacturer)
+        db.session.commit()
         return response
-    except AssertionError:
-        return jsonify({"msg": "record not found"})
+    except TypeError as type_error:
+        return jsonify({"msg": type_error})
 
 
+# car
 @app.route("/car", methods=["GET", "POST"])
-def create_view_car():
+def create_list_car():
     if request.method == "POST":
         json_data = request.get_json()
         if not json_data:
@@ -199,15 +213,22 @@ def create_view_car():
         return jsonify(response)
 
 
-@app.route("/car/<int:id>", methods=["GET"])
-def retrieve_car(id):
+@app.route("/car/<int:id>", methods=["GET", "DELETE"])
+def retrieve_delete_car(id):
     try:
-        car = Car.query.filter_by(id=id).first()
-        assert car is not None
+        car = Car.query.get(id)
+        if car is None:
+            abort(404)
+        if request.method == "GET":
+            response = car_schema.dump(car)
+            return response
+        # request.method == "DELETE"
         response = car_schema.dump(car)
+        db.session.delete(car)
+        db.session.commit()
         return response
-    except AssertionError:
-        return jsonify({"msg": "record not found"})
+    except TypeError as type_error:
+        return jsonify({"msg": type_error})
 
 
 # Run server
