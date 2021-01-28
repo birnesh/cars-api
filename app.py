@@ -12,9 +12,9 @@ app = Flask(__name__)
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 
 # configuration
-app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///" + os.path.join(
-    BASE_DIR, "db.sqlite"
-)
+app.config[
+    "SQLALCHEMY_DATABASE_URI"
+] = "postgresql://postgres:postgres@127.0.0.1:5432/super_cars"
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 app.config["JSON_SORT_KEYS"] = False
 
@@ -107,7 +107,7 @@ class CarSchema(ma.SQLAlchemyAutoSchema):
             "manufacturer",
         )
 
-    manufacturer = ma.Nested("ManufacturerSchema")
+    manufacturer = ma.Hyperlinks(ma.URLFor("retrieve_delete_manufacturer", values=dict(id="<manufacturer_id>")))
 
 
 # Init schema
