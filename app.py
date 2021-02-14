@@ -7,6 +7,9 @@ from marshmallow import ValidationError, pre_load
 from sqlalchemy.exc import IntegrityError
 from werkzeug.exceptions import NotFound
 
+# swagger_ui
+from flask_swagger_ui import get_swaggerui_blueprint
+
 # Init app
 app = Flask(__name__)
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
@@ -23,6 +26,17 @@ db = SQLAlchemy(app)
 
 # Init ma
 ma = Marshmallow(app)
+
+
+### swagger specific ###
+SWAGGER_URL = "/swagger"
+API_URL = "/static/swagger.yaml"
+SWAGGERUI_BLUEPRINT = get_swaggerui_blueprint(
+    SWAGGER_URL, API_URL, config={"app_name": "Super Cars API Using FLask"}
+)
+
+app.register_blueprint(SWAGGERUI_BLUEPRINT, url_prefix=SWAGGER_URL)
+### end swagger specific ###
 
 # DB Models
 class Manufacturer(db.Model):
@@ -107,7 +121,9 @@ class CarSchema(ma.SQLAlchemyAutoSchema):
             "manufacturer",
         )
 
-    manufacturer = ma.Hyperlinks(ma.URLFor("retrieve_delete_manufacturer", values=dict(id="<manufacturer_id>")))
+    manufacturer = ma.Hyperlinks(
+        ma.URLFor("retrieve_delete_manufacturer", values=dict(id="<manufacturer_id>"))
+    )
 
 
 # Init schema
@@ -120,7 +136,7 @@ cars_schema = CarSchema(many=True)
 
 # API routes
 # manufacturing
-@app.route("/manufacturer", methods=["GET", "POST"])
+@app.route("/manufacturers", methods=["GET", "POST"])
 def create_list_manufacturer():
     if request.method == "POST":
         json_data = request.get_json()
@@ -171,7 +187,7 @@ def retrieve_delete_manufacturer(id):
 
 
 # car
-@app.route("/car", methods=["GET", "POST"])
+@app.route("/cars", methods=["GET", "POST"])
 def create_list_car():
     if request.method == "POST":
         json_data = request.get_json()
