@@ -1,14 +1,14 @@
 import os
 
-from flask import Flask, jsonify, request, abort
+from flask import Flask, abort, jsonify, request
 from flask_marshmallow import Marshmallow
+# from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
+# swagger_ui
+from flask_swagger_ui import get_swaggerui_blueprint
 from marshmallow import ValidationError, pre_load
 from sqlalchemy.exc import IntegrityError
 from werkzeug.exceptions import NotFound
-
-# swagger_ui
-from flask_swagger_ui import get_swaggerui_blueprint
 
 # Init app
 app = Flask(__name__)
@@ -27,7 +27,7 @@ db = SQLAlchemy(app)
 # Init ma
 ma = Marshmallow(app)
 
-
+# migrate = Migrate(app, db)
 ### swagger specific ###
 SWAGGER_URL = "/swagger"
 API_URL = "/static/swagger.yaml"
@@ -44,7 +44,7 @@ class Manufacturer(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), unique=True, nullable=False)
-    head_quarter = db.Column(db.String(20), nullable=True)
+    head_quarter = db.Column(db.String(40), nullable=True)
     founder = db.Column(db.String(50), nullable=True)
     established_year = db.Column(db.Integer)
     cars = db.relationship(
@@ -71,7 +71,7 @@ class Car(db.Model):
     )
     launched_year = db.Column(db.Integer)
     top_speed = db.Column(db.Integer)
-    engine_type = db.Column(db.String(30), nullable=False)
+    engine_type = db.Column(db.String(100), nullable=False)
     max_horse_power = db.Column(db.Integer)
     zero_to_hundred = db.Column(db.Float, nullable=True)
 
@@ -139,33 +139,53 @@ cars_schema = CarSchema(many=True)
 @app.route("/manufacturers", methods=["GET", "POST"])
 def create_list_manufacturer():
     if request.method == "POST":
-        json_data = request.get_json()
-        if not json_data:
-            return {"message": "No input data provided"}, 400
-        # Validate and deserialize input
         try:
+            json_data = request.get_json()
+            if not json_data:
+                raise Exception("Request Body is empty")
+            # Validate and deserialize input
+            # Validation Error may occur here
             data = manufacturer_schema.load(json_data)
-        except ValidationError as err:
-            return err.messages, 422
-        name = data["name"]
-        head_quarter = data["head_quarter"]
-        founder = data["founder"]
-        established_year = data["established_year"]
-
-        try:
+            name = data["name"]
+            head_quarter = data["head_quarter"]
+            founder = data["founder"]
+            established_year = data["established_year"]
+            # db integrity Error may occur here
             new_manufacturer = Manufacturer(
                 name, head_quarter, founder, established_year
             )
             db.session.add(new_manufacturer)
             db.session.commit()
-            return manufacturer_schema.jsonify(new_manufacturer)
-        except Exception as E:
-            return jsonify({"msg": E})
-    else:
-        all_manufacturers = Manufacturer.query.all()
-        response = manufacturers_schema.dump(all_manufacturers)
-
-        return jsonify(response)
+            response = jsonify({"message":"Success Ok"})
+            response.status_code = 201
+            response.headers["location"] = "/manufacturer/" + str(new_manufacturer.id)
+            return response
+        except IntegrityError:
+            return (
+                jsonify(
+                    {
+                        "error": {
+                            "code": 400,
+                            "message": "The request failed because it contained an invalid value.",
+                        }
+                    }
+                ),
+                400,
+            )
+        except ValidationError as validation_error:
+            return jsonify({"error": {"message": validation_error.messages}}), 422 
+        except Exception as empty_request_body:
+            return (
+                        jsonify({"error": {"message": empty_request_body.messages}}),
+                        400,
+                    )       
+    else: # GET
+        try:
+            all_manufacturers = Manufacturer.query.all()
+            response = manufacturers_schema.dump(all_manufacturers)
+            return jsonify(response)
+        except Exception:
+            return jsonify({"error": {"message": "Internal server error"}}), 500
 
 
 @app.route("/manufacturer/<int:id>", methods=["GET", "DELETE"])
@@ -173,17 +193,26 @@ def retrieve_delete_manufacturer(id):
     try:
         manufacturer = Manufacturer.query.get(id)
         if manufacturer is None:
-            abort(404)
+            return (
+                jsonify(
+                    {
+                        "error": {
+                            "code": 404,
+                            "message": "The data that you are looking for does not exist",
+                        }
+                    }
+                ),
+                404,
+            )
         if request.method == "GET":
             response = manufacturer_schema.dump(manufacturer)
             return response
         # request.method == "DELETE"
-        response = manufacturer_schema.dump(manufacturer)
         db.session.delete(manufacturer)
         db.session.commit()
-        return response
-    except TypeError as type_error:
-        return jsonify({"msg": type_error})
+        return jsonify({"message":"Success OK"}),200
+    except Exception:
+        return jsonify({"error": {"message": "Internal server error"}}), 500
 
 
 # car
@@ -247,6 +276,3 @@ def retrieve_delete_car(id):
         return jsonify({"msg": type_error})
 
 
-# Run server
-if __name__ == "__main__":
-    app.run(debug=True)

@@ -1,0 +1,321 @@
+---
+openapi: 3.0.0
+info:
+  title: Super Cars API
+  version: 1.0.0
+  description: API for Super Cars CRUD API using python flask
+  contact:
+    name: API support
+    email: birnesh711@gmail.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: '/'
+    description: 'Local server'
+  - url: '/dev'
+    description: 'development server'
+tags:
+  - name: Car
+  - name: Manufacturer
+paths:
+  '/cars':
+    get:
+      summary: Returns all Cars
+      description: Gives all the cars that has been registered
+      tags:
+        - Car
+      operationId: getAllCars
+      responses:
+        '200':
+          description: A list of Cars
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  '$ref': '#/components/schemas/carItemResponse'
+    post:
+      summary: Post a single Car record
+      description: Post a car by specifing the manufacturer and the cars information
+      tags:
+        - Car
+      operationId: postACar
+      requestBody:
+        description: car's name and manufacturer's ID are required fields
+        content:
+          application/json:
+            schema:
+              '$ref': '#/components/schemas/carItemRequest'
+      responses:
+        '200':
+          description: Successfully Created a car record
+          content:
+            application/json:
+              schema:
+                '$ref': '#/components/schemas/carItemResponse'
+
+  '/car/{id}':
+    parameters:
+      - name: id
+        in: path
+        description: ID of the car that needs to be retrieved
+        required: true
+        schema:
+          type: integer
+          example: '1'
+          default: '1'
+          minimum: 1
+          maximum: 9223372036854775807
+    get:
+      summary: 'Get car details from the database '
+      description: obtain car details from Car database 
+      tags:
+        - Car
+      operationId: getACar
+      responses:
+        '200':
+          description: OK - Successfully obtained car details
+          content:
+            application/json:
+              schema:
+                '$ref': '#/components/schemas/carItemRequest'
+              examples:
+                example-1:
+                  value:
+                    id: 100
+                    name: Audi R8
+                    manufacturer_id: 1
+                    manufacturer: '/manufacturers/1'
+                    launched_year: 2010
+                    top_speed: 300
+                    engine_type: 'V12'
+                    max_horse_power: 200
+                    zero_to_hundred: 3
+        '400':
+          description: Bad Request - Invalid car ID supplied
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/badRequest'
+              examples:
+                example-1:
+                  value:
+                    error:
+                      message: 'Provided ID is invalid'
+        '404':
+          description: Not Found - Item not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/notFound'
+              examples:
+                example-1:
+                  value:
+                    error:
+                      message: 'The car you are looking for , does not exist'
+    delete:
+      summary: Deletes a Car record
+      description: Deletes a Car record which has a specific instance
+      tags:
+        - Car
+      operationId: deleteACar
+      parameters:
+        - name: id
+          in: path
+          description: ID of the car record that needs to removed
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: delete operation successfull
+          content:
+            application/json:
+              schema:
+                '$ref': '#/components/schemas/carItemResponse'
+
+  '/manufacturers':
+    get:
+      summary: Returns All manufacturers
+      description: Gives a list of manufacturers objects
+      tags:
+        - Manufacturer
+      operationId: getAllManufacturers
+      responses:
+        '200':
+          description: A list of manufacturers
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  '$ref': '#/components/schemas/manufacturerItemResponse'
+    post:
+      summary: Post a Manufucture record
+      description: Enables to post a Manufacturer object
+      tags:
+        - Manufacturer
+      operationId: postAManufacturer
+      requestBody:
+        description: Manufacturer post requestBody
+        content:
+          application/json:
+            schema:
+              '$ref': '#/components/schemas/manufacturerItemPostRequest'
+      responses:
+        '201':
+          description: Manufacturer post successfully
+          content:
+            application/json:
+              schema:
+                '$ref': '#/components/schemas/manufacturerItemResponse'
+
+  '/manufacturer/{id}':
+    get:
+      summary: Retrieves a Manufacturer
+      description: Finds a Manufacturer with the given ID
+      tags:
+        - Manufacturer
+      operationId: getAManufacturer
+      parameters:
+        - name: id
+          in: path
+          description: ID of the manufacturer that needs to be retrieved
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: retrieved successfully
+          content:
+            application/json:
+              schema:
+                '$ref': '#/components/schemas/manufacturerItemResponse'
+    delete:
+      summary: Remove a single Manufacturer
+      description: Removes the record permanently
+      tags:
+        - Manufacturer
+      operationId: deleteAManufacturer
+      parameters:
+        - name: id
+          in: path
+          description: ID of the manufacturer record that needs to be removed
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: The delete request is successfull
+          content:
+            application/json:
+              schema:
+                '$ref': '#/components/schemas/manufacturerItemResponse'
+
+components:
+  schemas:
+    carItemRequest:
+      type: object
+      required:
+        - name
+        - manufacturer_id
+        - top_speed
+        - zero_to_hundred
+      properties:
+        name:
+          type: integer
+          format: int32
+        manufacturer_id:
+          type: integer
+          format: int64
+        launched_year:
+          type: integer
+          format: int32
+        top_speed:
+          type: integer
+          format: int32
+        engine_type:
+          type: string
+        zero_to_hundred:
+          type: integer
+          format: int32
+
+    carItemResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int32
+        name:
+          type: string
+        manufacturer_id:
+          type: integer
+          format: int32
+        launched_year:
+          type: integer
+          format: int32
+        top_speed:
+          type: integer
+          format: int32
+        engine_type:
+          type: string
+        max_horse_power:
+          type: integer
+          format: int32
+        zero_to_hundred:
+          type: integer
+          format: int32
+        manufacturer:
+          type: string
+    manufacturerItemResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int32
+        name:
+          type: string
+        head_quarter:
+          type: string
+        founder:
+          type: string
+        established_year:
+          type: integer
+          format: int32
+    manufacturerItemPostRequest:
+      type: object
+      required:
+        - name
+        - head_quarter
+        - founder
+        - established_year
+      properties:
+        name:
+          type: string
+        head_quarter:
+          type: string
+        founder:
+          type: string
+        established_year:
+          type: integer
+          format: int32
+    badRequest:
+      title: Bad Request
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            message:
+              type: string
+    notFound:
+      title: Not Found
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            message:
+              type: string
