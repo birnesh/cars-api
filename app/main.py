@@ -17,7 +17,7 @@ BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 # configuration
 app.config[
     "SQLALCHEMY_DATABASE_URI"
-] = "postgresql://postgres:postgres@127.0.0.1:5432/super_cars"
+] = os.environ.get("DATABASE_URL", "postgresql://postgres:postgres@127.0.0.1:5432/super_cars")
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 app.config["JSON_SORT_KEYS"] = False
 
