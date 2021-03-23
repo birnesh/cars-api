@@ -11,9 +11,6 @@ flask-marshmallow==0.14.0
 Flask-Migrate==2.5.3
 Flask-SQLAlchemy==2.4.4
 flask-swagger-ui==3.36.0
-ipykernel==5.4.3
-ipython==7.20.0
-ipython-genutils==0.2.0
 itsdangerous==1.1.0
 jedi==0.18.0
 Jinja2==2.11.2
