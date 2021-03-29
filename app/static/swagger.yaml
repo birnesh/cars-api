@@ -12,10 +12,10 @@ info:
     url: https://opensource.org/licenses/MIT
 
 servers:
+  - url: 'https://carz-api.herokuapp.com/'
+    description: 'heroku'
   - url: '/'
     description: 'Local server'
-  - url: '/dev'
-    description: 'development server'
 tags:
   - name: Car
   - name: Manufacturer
